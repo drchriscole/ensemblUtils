@@ -14,9 +14,9 @@ use Pod::Usage;
 use File::Basename;
 
 # requires that ensembl perl API is in $PATH
-use Bio::EnsEMBL::Registry;
+#use Bio::EnsEMBL::Registry;
 
-our $VERSION = '1.1';
+our $VERSION = '1.1_json.1';
 
 my $file;
 my $title = 'Ensembl Data';
@@ -58,6 +58,16 @@ if ($check) {
 
 # generate a URL for links to ensembl
 $ensURL = constructURL($species);
+
+my ($headers, $data);
+if ($check) {
+	($headers, $data) = parseTsv($file, $gene_adaptor)
+} else {
+	($headers, $data) = parseTsv($file);
+}
+printf "Found %d columns and %d data rows\n", scalar @$headers, scalar @$data;
+print join("|",@{$data->[0]}),"\n";
+exit;
 
 ## open HTML file and print headers
 ## Includes funky jQuery and dataTables javascript goodness...
@@ -126,43 +136,9 @@ print $html "<?xml version='1.0' encoding='utf-8' ?>
 <caption>Click column headers to sort rows</caption>
 ";
 
-## read source data file and append HTML table data with it
-open(my $IN, "<", $file) or die "ERROR - unable to open '$file': ${!}\nDied";
-my $c = 0;
-while(<$IN>) {
-   chomp;
-   s/\"//g; # remove quotes;
-   my @F = split(/\t/, $_);
-   my $id = shift @F;
-   unless ($id =~ /^ENS/) { # print header line
-      print $html "<thead>\n<tr><th>$id</th><th>",join("</th><th>",@F),"</th></tr>\n</thead>\n";
-      next;
-   }
-   ++$c;
-   print "Fetching gene '$id' from Ensembl...\n" if $DEBUG;
-   my $g;
-   $g = $gene_adaptor->fetch_by_stable_id($id) if $check; # fetch it from ensembl
-   my $skip = 0;
-   if ($check && !defined($g)) {  # check gene exists
-      warn "Warning - gene '$id' not found\n";
-      $skip = 1;
-   }
-   if ($skip) {
-      print $html "<tr><td>$id</td><td>",join("</td><td>",@F),"</td></tr>\n";
-   } else {
-      print $html "<tr><td><a href='$ensURL$id'>$id</a></td><td>",join("</td><td>",@F),"</td></tr>\n";
-   }
-   
-}
-close($IN);
 print $html "</table>\n</div>\n</body>\n</html>\n";
 close($html);
-if ($c == 0) {
-   warn "Warning - no gene names found. Nothing changed\n";
-   unlink($out);
-   exit;
-}
-
+exit;
 
 ## this is required in order to pick the correct
 ## connection parameters to the Ensembl API as 
@@ -207,11 +183,52 @@ sub constructURL {
    );
    
    if ($known{$species}) {
-      return("http://grch37.ensembl.org/$known{$species}/Gene/Summary?g=")
+      return("http://www.ensembl.org/$known{$species}/Gene/Summary?g=")
    } else {
       warn "Warning - species '$species' is not recognised. Links to Ensembl won't work.\n          This is a minor problem and can be solved easily in the contructURL() function.\n";
       return('');
    }
+}
+
+## parse data
+sub parseTsv {
+	my $file = shift;
+	my $ens_adaptor= shift;
+	
+	## read source data file and append HTML table data with it
+	my @colHeaders;
+	my @data;
+	my $i = 0;
+	open(my $IN, "<", $file) or die "ERROR - unable to open '$file': ${!}\nDied";
+	while(<$IN>) {
+		chomp;
+		s/\"//g; # remove quotes;
+		print join(":",split(/\t/, $_))."\n" if $DEBUG;
+		if ($. == 1) { # header line - assume it exists
+			@colHeaders = split(/\t/, $_);
+		} else {
+			my @F = split(/\t/, $_);
+			my $id = $F[0];
+			die "ERROR - wrong number of data columns at line $.\n" unless (scalar @F == scalar @colHeaders);
+			
+			my $validID = 1;
+			if ($ens_adaptor) { # if adapter provided, check geneID is valid
+				print "Fetching gene '$id' from Ensembl...\n" if $DEBUG;
+				my $g = $ens_adaptor->fetch_by_stable_id($id);
+				warn "Warning - gene ID '$id' is not known by ensembl\n";
+				$validID = 0;
+			}
+			
+			# if the geneID is valid turn it into an HTML <a> tag
+			$F[0] = "<a href='$ensURL$id'>$id</a>" if ($validID);
+			
+			# store data
+			push @{$data[$i]},  @F;
+			++$i;
+		}
+	}
+	close($IN);
+	return(\@colHeaders, \@data);
 }
 
 =head1 SYNOPSIS
