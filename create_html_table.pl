@@ -16,12 +16,13 @@ use File::Basename;
 # requires that ensembl perl API is in $PATH
 use Bio::EnsEMBL::Registry;
 
-our $VERSION = '1.2';
+our $VERSION = '1.3';
 
 my $file;
 my $title = 'Ensembl Data';
 my $out = 'out.html';
 my $check = 0;
+my $ensSection;
 my $ensURL;
 my $desc = 0;
 my $species = 'human';
@@ -37,6 +38,7 @@ GetOptions (
    'title=s'   => \$title,
    'check-ensembl!' => \$check,
    'species=s' => \$species,
+   'section=s' => \$ensSection,
    'pval-cols=s' => \$cols,
    'verbose!'  => \$VERBOSE,
    'debug!'    => \$DEBUG,
@@ -56,8 +58,14 @@ if ($check) {
    warn "Warning - API version check has failed. You probably need to update your local install.\n" unless ($registry->version_check($registry->get_DBAdaptor($species, 'core')));
 }
 
+if (defined($ensSection)) {
+   my %known;
+   $known{$_}++ foreach (qw/plants bacteria metazoa protists fungi/);
+   die "ERROR - ensembl genomes section '$ensSection' not known.\n" unless ($known{$ensSection});
+}
+
 # generate a URL for links to ensembl
-$ensURL = constructURL($species);
+$ensURL = constructURL($species, $ensSection);
 
 print "Parsing input file...\n" if $VERBOSE;
 my ($headers, $data);
@@ -196,6 +204,7 @@ sub connectEnsemblRegistry {
 ## the ensembl URL is dependent on species, so generate it here
 sub constructURL {
    my $species = shift;
+   my $ensemblSection = shift;
    
    $species =~ tr/A-Z/a-z/;
    my %known = (
@@ -206,6 +215,9 @@ sub constructURL {
    
    if ($known{$species}) {
       return("http://www.ensembl.org/$known{$species}/Gene/Summary?g=")
+   } elsif (defined($ensemblSection)) {
+      return("http://$ensemblSection.ensembl.org/$species/Gene/Summary?g=")
+      
    } else {
       warn "Warning - species '$species' is not recognised. Links to Ensembl won't work.\n          This is a minor problem and can be solved easily in the contructURL() function.\n";
       return('');
@@ -255,7 +267,7 @@ sub parseTsv {
 
 =head1 SYNOPSIS
 
-create_html_table.pl --in <file> [--check-ensembl|--no-check-ensembl] [--title <string>] [--species <name>] [--pval-cols <string>] [--out <file>] [--verbose|--no-verbose] [--debug|--no-debug] [--man] [--help]
+create_html_table.pl --in <file> [--check-ensembl|--no-check-ensembl] [--section <string>] [--title <string>] [--species <name>] [--pval-cols <string>] [--out <file>] [--verbose|--no-verbose] [--debug|--no-debug] [--man] [--help]
 
 =head1 DESCRIPTION
 
@@ -281,13 +293,17 @@ Input file. Tab-delimitted with Ensembl identifiers in first column
 
 Check identifiers against Ensembl. [default: off]
 
+=item B<--section>
+
+For species which are in Ensembl Genomes, specify the section (e.g. plants).
+
 =item B<--title>
 
 Title for web page.
 
 =item B<--species>
 
-Specify species. [default: human]
+Specify species. For ensembl genomes needs to be the full name joined with an underscore e.g. Arabidopsis_thaliana.   [default: human]
 
 =item B<--pval-cols>
 
