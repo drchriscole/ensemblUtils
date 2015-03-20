@@ -14,9 +14,9 @@ use Pod::Usage;
 use File::Basename;
 
 # requires that ensembl perl API is in $PATH
-#use Bio::EnsEMBL::Registry;
+use Bio::EnsEMBL::Registry;
 
-our $VERSION = '1.1_json.1';
+our $VERSION = '1.1_json.2';
 
 my $file;
 my $title = 'Ensembl Data';
@@ -59,23 +59,22 @@ if ($check) {
 # generate a URL for links to ensembl
 $ensURL = constructURL($species);
 
+print "Parsing input file...\n" if $VERBOSE;
 my ($headers, $data);
 if ($check) {
 	($headers, $data) = parseTsv($file, $gene_adaptor)
 } else {
 	($headers, $data) = parseTsv($file);
 }
-printf "Found %d columns and %d data rows\n", scalar @$headers, scalar @$data;
-print join("|",@{$data->[0]}),"\n";
-exit;
+printf "Found %d columns and %d data rows\n", scalar @$headers, scalar @$data if $VERBOSE;
 
+print "Generating HTML table...\n" if $VERBOSE;
 ## open HTML file and print headers
-## Includes funky jQuery and dataTables javascript goodness...
+## Includes funky JSON, jQuery and dataTables javascript goodness...
 ## The javascript allows better formatting of table data via pagination with
 ## user-selectable number of rows to display at a time. Also, the table is 
 ## searchable and sortable. By default the table is shown in its original 
 ## state; no additional sorting is done.
-## CSS and Javascript paths assume the current file is in /homes/ccole/public_html/somedir/
 open(my $html, ">", $out) or die "ERROR - unable to open '$out' for write: ${!}\nDied";
 print $html "<?xml version='1.0' encoding='utf-8' ?>
 <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>
@@ -100,9 +99,31 @@ print $html "<?xml version='1.0' encoding='utf-8' ?>
             var y = parseFloat(b);
             return ((x < y) ? 1 : ((x > y) ?  -1 : 0));
          };
-              
-	    \$('#myTable').dataTable(
+         
+         /* json data for tabulating */
+         var myData = [
+";
+
+## contruct json data structure here.
+foreach my $row (@$data) {
+	printf $html "            ['%s'],\n", join("','", @$row);
+}
+          
+print $html "         ];
+
+         \$('#myTable').dataTable(
 	       {
+	          'data': myData,
+	          'columns': [
+";
+
+## add column headers here
+foreach my $head (@$headers) {
+   print $html "	             { 'title': '$head' },\n";
+}
+
+## print rest of javascript and HTML
+print $html "	          ],
 	       	  'aoColumnDefs': [
 	       	      { 'sType': 'allnumeric', 'aTargets': [ $cols ] }
 	       	  ],
@@ -134,10 +155,11 @@ print $html "<?xml version='1.0' encoding='utf-8' ?>
 <div id='main'>
 <table class = 'display' id = 'myTable' cellpadding = '5' width = '100%'>
 <caption>Click column headers to sort rows</caption>
+</table>\n</div>\n</body>\n</html>
 ";
 
-print $html "</table>\n</div>\n</body>\n</html>\n";
 close($html);
+print "Done.\n" if $VERBOSE;
 exit;
 
 ## this is required in order to pick the correct
@@ -220,7 +242,7 @@ sub parseTsv {
 			}
 			
 			# if the geneID is valid turn it into an HTML <a> tag
-			$F[0] = "<a href='$ensURL$id'>$id</a>" if ($validID);
+			$F[0] = "<a href=\\'$ensURL$id\\'>$id</a>" if ($validID);
 			
 			# store data
 			push @{$data[$i]},  @F;
