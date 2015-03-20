@@ -16,7 +16,7 @@ use File::Basename;
 # requires that ensembl perl API is in $PATH
 use Bio::EnsEMBL::Registry;
 
-our $VERSION = '1.1_json.2';
+our $VERSION = '1.2';
 
 my $file;
 my $title = 'Ensembl Data';
