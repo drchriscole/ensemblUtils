@@ -16,7 +16,7 @@ use File::Basename;
 # requires that ensembl perl API is in $PATH
 use Bio::EnsEMBL::Registry;
 
-our $VERSION = '1.4';
+our $VERSION = '1.5';
 
 my $file;
 my $title = 'Ensembl Data';
@@ -237,6 +237,7 @@ sub parseTsv {
 	while(<$IN>) {
 		chomp;
 		s/\"//g; # remove quotes;
+		s/\'/\\'/g; # escape single quotes - screws up quoting in JSON data
 		print join(":",split(/\t/, $_))."\n" if $DEBUG;
 		if ($. == 1) { # header line - assume it exists
 			@colHeaders = split(/\t/, $_);
