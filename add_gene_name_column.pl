@@ -16,7 +16,7 @@ use File::Basename;
 use Bio::EnsEMBL::Registry;
 use Bio::EnsEMBL::ApiVersion;
 
-our $VERSION = '1.2';
+our $VERSION = '1.3';
 
 my $file;
 my $species = '';
@@ -68,7 +68,7 @@ while(<$IN>) {
    s/\"//g; # remove quotes;
    my @F = split(/$delim/, $_);
    my $id = shift @F;
-   unless ($id =~ /^ENS/) { # print header line
+   if ($. == 1) { # print header line
       if ($desc) {
          print $OUT "$id${delim}GeneName${delim}Description$delim";
          print $OUT "Chromosome${delim}Start${delim}End${delim}Strand$delim" if ($coords);
@@ -128,7 +128,6 @@ if ($c == 0) {
    unlink($out);
    exit;
 }
-#rename($out, $fasta) or die "Failed to rename '$out' to '$fasta'\n";
 print "\nDone!\n";
 
 ## this is required in order to pick the correct
@@ -170,12 +169,13 @@ add_gene_name_column.pl --in <file> --species <name> [--feature-type <string>] [
 
 =head1 DESCRIPTION
 
-Annotate delimited datafiles with addtional gene information from ensembl.
+Annotate delimited datafiles with addtional gene information from ensembl. The datafile must have a header and the first column should have ensembl gene IDs.
 
+=head1 DEPENDENCIES
+   
 This script is dependent on the ensembl perl API and requires the path to be set in PERL5LIB e.g.
 
-   export PERL5LIB=/sw/opt/ensembl-api/72/ensembl/modules:/homes/ccole/lib:/sw/opt/ensembl-api/bioperl-live
-
+   export PERL5LIB=/opt/ensembl-api/72/ensembl/modules:$PERL5LIB
 
 =head1 OPTIONS
 
@@ -183,7 +183,7 @@ This script is dependent on the ensembl perl API and requires the path to be set
 
 =item B<--in>
 
-Input tab-delimited file. 1st column must be an ensembl ID.
+Input delimited file. 1st column must be an ensembl ID.
 
 =item B<--species>
 
