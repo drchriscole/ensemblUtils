@@ -9,14 +9,14 @@ add_gene_name_column.pl - given a tab delimited file with Ensembl IDs in the fir
 use strict;
 use warnings;
 
-use Getopt::Long;
+use Getopt::Long qw(:config auto_version);
 use Pod::Usage;
 use File::Basename;
 
 use Bio::EnsEMBL::Registry;
 use Bio::EnsEMBL::ApiVersion;
 
-our $VERSION = '1.3';
+our $VERSION = '1.4';
 
 my $file;
 my $species = '';
@@ -152,7 +152,7 @@ sub connectEnsemblRegistry {
       print "Connecting to Ensembl Genomes API...\n" if $VERBOSE;
       
       $registry->load_registry_from_db(
-          -host => 'mysql.ebi.ac.uk',
+          -host => 'mysql-eg-publicsql.ebi.ac.uk',
           -user => 'anonymous',
           -port => 4157,
       );
