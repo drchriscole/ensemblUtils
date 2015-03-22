@@ -9,14 +9,14 @@ create_html_table.pl - given a tab-delimited file with ensembl identifiers creat
 use strict;
 use warnings;
 
-use Getopt::Long;
+use Getopt::Long qw(:config auto_version);
 use Pod::Usage;
 use File::Basename;
 
 # requires that ensembl perl API is in $PATH
 use Bio::EnsEMBL::Registry;
 
-our $VERSION = '1.3';
+our $VERSION = '1.5';
 
 my $file;
 my $title = 'Ensembl Data';
@@ -192,7 +192,7 @@ sub connectEnsemblRegistry {
       print "Connecting to Ensembl Genomes API...\n" if $VERBOSE;
       
       $registry->load_registry_from_db(
-          -host => 'mysql.ebi.ac.uk',
+          -host => 'mysql-eg-publicsql.ebi.ac.uk',
           -user => 'anonymous',
           -port => 4157,
       );
@@ -237,6 +237,7 @@ sub parseTsv {
 	while(<$IN>) {
 		chomp;
 		s/\"//g; # remove quotes;
+		s/\'/\\'/g; # escape single quotes - screws up quoting in JSON data
 		print join(":",split(/\t/, $_))."\n" if $DEBUG;
 		if ($. == 1) { # header line - assume it exists
 			@colHeaders = split(/\t/, $_);
@@ -249,8 +250,10 @@ sub parseTsv {
 			if ($ens_adaptor) { # if adapter provided, check geneID is valid
 				print "Fetching gene '$id' from Ensembl...\n" if $DEBUG;
 				my $g = $ens_adaptor->fetch_by_stable_id($id);
-				warn "Warning - gene ID '$id' is not known by ensembl\n";
-				$validID = 0;
+				if (!defined($g)) {
+					warn "Warning - gene ID '$id' is not known by ensembl\n";
+					$validID = 0;
+				}
 			}
 			
 			# if the geneID is valid turn it into an HTML <a> tag
