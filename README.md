@@ -1,14 +1,22 @@
 # ensemblUtils
-Utility scripts which use the Ensembl perl-API
 
 Herein are a bunch of scripts that I've used over the years to perform 
 various tasks with the Ensembl API.
 
 I'm putting them here as they may be useful to others.
 
+# Requirements
+
 All require the Ensembl API is already installed and available via 
-PERL5LIB. More information regarding each script is available with
-the --help and --man arguments e.g.
+PERL5LIB. See [Ensembl](http://www.ensembl.org/info/docs/api/index.html) for help.
+
+A few perl modules are required in addition to Ensembl:
+
+ * Getopt::Long
+ * Pod::Usage
+ * File::Basename
+ 
+More information regarding each script is available with the --help and --man arguments e.g.
 
     perl add_gene_name_column.pl --man
 
@@ -42,3 +50,5 @@ links to ensembl for known gene IDs (first column).
 This example enforces a check of the validity of ensembl gene IDs. Any
 that are not valid are reported and no link to ensembl provided in the
 final output.
+
+_There's more to come..._
