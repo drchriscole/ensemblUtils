@@ -16,11 +16,13 @@ use File::Basename;
 use Bio::EnsEMBL::Registry;
 use Bio::EnsEMBL::ApiVersion;
 
-our $VERSION = '1.4';
+our $VERSION = '1.5';
 
 my $file;
 my $species = '';
 my $feature = 'Gene';
+my $idCol = 0;
+my $infoCol;
 my $desc = 0;
 my $coords = 0;
 my $delim = "\t";
@@ -34,6 +36,8 @@ GetOptions (
    'in=s'      => \$file,
    'species=s' => \$species,
    'feature-type=s' => \$feature,
+   'id-column=i' => \$idCol,
+   'info-column=i' => \$infoCol,
    'desc!'     => \$desc,
    'coords!'   => \$coords,
    'delim=s'   => \$delim,
@@ -50,6 +54,7 @@ pod2usage(-msg => 'Please supply a valid filename.') unless ($file && -e $file);
 pod2usage(-msg => 'Please supply a species name.') unless ($species);
 
 $desc = 1 if ($coords); # enable descriptions if co-ordinates are set.
+$infoCol = $idCol unless (defined($infoCol));   # make info columns adjacent to ID column, unless otherwise set.
 
 die "ERROR - invalid feature-type '$feature'. Use 'Gene' or 'Transcript'." unless ($feature =~ /^(gene|transcript)$/i); 
 
@@ -67,24 +72,28 @@ while(<$IN>) {
    chomp;
    s/\"//g; # remove quotes;
    my @F = split(/$delim/, $_);
-   my $id = shift @F;
+   if (!defined($F[$infoCol])) {
+      warn "Warning - info column position is beyond the last column. Adding at the end of each row.\n";
+      $infoCol = $#F;
+   }
    if ($. == 1) { # print header line
       if ($desc) {
-         print $OUT "$id${delim}GeneName${delim}Description$delim";
-         print $OUT "Chromosome${delim}Start${delim}End${delim}Strand$delim" if ($coords);
-         print $OUT join("$delim",@F),"\n";
+         splice(@F,$infoCol,1,$F[$infoCol],"GeneName","Description");
+      } elsif ($coords) {
+         splice(@F,$infoCol,1,$F[$infoCol],"GeneName","Description","Chromosome","Start","End","Strand");
       } else {
-         print $OUT "$id${delim}GeneName${delim}",join("$delim",@F),"\n";
+         splice(@F,$infoCol,1,$F[$infoCol],"GeneName");
       }
+      print $OUT join("$delim",@F),"\n";
       next;
    }
    ++$c;
-   print "Fetching gene '$id' from Ensembl...\n" if $DEBUG;
+   print "Fetching gene '$F[$idCol]' from Ensembl...\n" if $DEBUG;
    my $g;
    if ($feature =~ /transcript/i) {
-      $g = $adaptor->fetch_by_transcript_stable_id($id)
+      $g = $adaptor->fetch_by_transcript_stable_id($F[$idCol])
    } else {
-      $g = $adaptor->fetch_by_stable_id($id); # fetch it from ensembl
+      $g = $adaptor->fetch_by_stable_id($F[$idCol]); # fetch it from ensembl
    }
    my $name;
    my $gDesc;
@@ -94,7 +103,7 @@ while(<$IN>) {
    my $strand = '-';
    
    if (!defined($g)) {  # check gene exists
-      warn "Warning - gene '$id' not found\n";
+      warn "Warning - gene '$F[$idCol]' not found\n";
       $name = 'unknown';
       $gDesc = 'none';
    } else {
@@ -114,12 +123,13 @@ while(<$IN>) {
       
    }
    if ($desc) {
-      print $OUT "$id$delim$name$delim$gDesc$delim";
-      print $OUT "$chr$delim$start$delim$end$delim$strand$delim" if ($coords);
-      print $OUT join("$delim",@F),"\n";
+      splice(@F,$infoCol,1,$F[$infoCol],$name,$gDesc);
+   } elsif ($coords) {
+      splice(@F,$infoCol,1,$F[$infoCol],$name,$gDesc,$chr,$start,$end,$strand);
    } else {
-      print $OUT "$id$delim$name$delim",join("$delim",@F),"\n";
+      splice(@F,$infoCol,1,$F[$infoCol],$name);
    }
+   print $OUT join("$delim",@F),"\n";
    
 }
 close($IN);
@@ -165,11 +175,11 @@ sub connectEnsemblRegistry {
 
 =head1 SYNOPSIS
 
-add_gene_name_column.pl --in <file> --species <name> [--feature-type <string>] [--desc|--no-desc] [--coords|--no-coords] [--delim <string>] [--out <file>] [--verbose|--no-verbose] [--debug|--no-debug] [--man] [--help]
+add_gene_name_column.pl --in <file> --species <name> [--id-column <num>] [--info-column <num>] [--feature-type <string>] [--desc|--no-desc] [--coords|--no-coords] [--delim <string>] [--out <file>] [--verbose|--no-verbose] [--debug|--no-debug] [--man] [--help]
 
 =head1 DESCRIPTION
 
-Annotate delimited datafiles with addtional gene information from ensembl. The datafile must have a header and the first column should have ensembl gene IDs.
+Annotate delimited datafiles with addtional gene information from ensembl. The datafile must have a header and, by default, the first column should have ensembl gene IDs. The location of the gene ID column is configurable with the I<--id-column> and where to put the gene information is determined with I<--info-column>.
 
 =head1 DEPENDENCIES
    
@@ -189,9 +199,17 @@ Input delimited file. 1st column must be an ensembl ID.
 
 Species name.
 
+=item B<--id-column>
+
+Specify which column has the ensembl feature id (0-indexed). [default: 0]
+
+=item B<--info-column>
+
+Specify which column to put info *after* (0-indexed). [default: id-column]
+
 =item B<--feature-type>
 
-Specify whether the Ensembl IDs correspond to genes or transcripts. [default: Genes]
+Specify whether the Ensembl IDs correspond to genes or transcripts. [default: Gene]
 
 =item B<--desc|--no-desc>
 
