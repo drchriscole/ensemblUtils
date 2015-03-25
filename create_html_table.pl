@@ -16,11 +16,12 @@ use File::Basename;
 # requires that ensembl perl API is in $PATH
 use Bio::EnsEMBL::Registry;
 
-our $VERSION = '1.5';
+our $VERSION = '1.6';
 
 my $file;
 my $title = 'Ensembl Data';
 my $out = 'out.html';
+my $idCol = 0;
 my $check = 0;
 my $ensSection;
 my $ensURL;
@@ -35,6 +36,7 @@ my $man;
 GetOptions (
    'in=s'      => \$file,
    'out=s'     => \$out,
+   'id-column=i' => \$idCol,
    'title=s'   => \$title,
    'check-ensembl!' => \$check,
    'species=s' => \$species,
@@ -243,7 +245,8 @@ sub parseTsv {
 			@colHeaders = split(/\t/, $_);
 		} else {
 			my @F = split(/\t/, $_);
-			my $id = $F[0];
+			die "ERROR - column '$idCol' not found.\n" unless (defined($F[$idCol]));
+			my $id = $F[$idCol];
 			die "ERROR - wrong number of data columns at line $.\n" unless (scalar @F == scalar @colHeaders);
 			
 			my $validID = 1;
@@ -257,7 +260,7 @@ sub parseTsv {
 			}
 			
 			# if the geneID is valid turn it into an HTML <a> tag
-			$F[0] = "<a href=\\'$ensURL$id\\'>$id</a>" if ($validID);
+			$F[$idCol] = "<a href=\\'$ensURL$id\\'>$id</a>" if ($validID);
 			
 			# store data
 			push @{$data[$i]},  @F;
@@ -270,7 +273,7 @@ sub parseTsv {
 
 =head1 SYNOPSIS
 
-create_html_table.pl --in <file> [--check-ensembl|--no-check-ensembl] [--section <string>] [--title <string>] [--species <name>] [--pval-cols <string>] [--out <file>] [--verbose|--no-verbose] [--debug|--no-debug] [--man] [--help]
+create_html_table.pl --in <file> [--id-column <num>] [--check-ensembl|--no-check-ensembl] [--section <string>] [--title <string>] [--species <name>] [--pval-cols <string>] [--out <file>] [--verbose|--no-verbose] [--debug|--no-debug] [--man] [--help]
 
 =head1 DESCRIPTION
 
@@ -278,7 +281,7 @@ Sometimes when sharing data with others you want more than just a simple tab-del
 
 This script solves this problem.
 
-Take any tab-delimited file with ensembl geneIDs as the first column and creates a jQuery dataTable in a HTML page.
+Take any tab-delimited file with ensembl geneIDs and creates a jQuery dataTable in a HTML page.
 
 =head1 REQUIREMENTS
 
@@ -291,6 +294,10 @@ Requires the ensembl Perl API.
 =item B<--in>
 
 Input file. Tab-delimitted with Ensembl identifiers in first column
+
+=item B<--id-column>
+
+Specify the gene ID column (0-indexed). [default: 0]
 
 =item B<--check-ensembl|--no-check-ensembl>
 
