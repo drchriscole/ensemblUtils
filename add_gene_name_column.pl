@@ -16,7 +16,7 @@ use File::Basename;
 use Bio::EnsEMBL::Registry;
 use Bio::EnsEMBL::ApiVersion;
 
-our $VERSION = '1.5';
+our $VERSION = '1.6';
 
 my $file;
 my $species = '';
@@ -84,7 +84,7 @@ while(<$IN>) {
       } else {
          splice(@F,$infoCol,1,$F[$infoCol],"GeneName");
       }
-      print $OUT join("$delim",@F),"\n";
+      print $OUT join("\t",@F),"\n";
       next;
    }
    ++$c;
@@ -129,7 +129,7 @@ while(<$IN>) {
    } else {
       splice(@F,$infoCol,1,$F[$infoCol],$name);
    }
-   print $OUT join("$delim",@F),"\n";
+   print $OUT join("\t",@F),"\n";
    
 }
 close($IN);
@@ -221,7 +221,7 @@ Toggle whether to include genomic coordinates (assumes --desc is set). [default:
 
 =item B<--delim>
 
-Specify the field delimiter in the input and output files. [default: tab]
+Specify the field delimiter in the input file. Output will always be tab. [default: tab]
 
 =item B<--out>
 
