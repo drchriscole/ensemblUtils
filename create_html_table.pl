@@ -16,7 +16,7 @@ use File::Basename;
 # requires that ensembl perl API is in $PATH
 use Bio::EnsEMBL::Registry;
 
-our $VERSION = '1.6';
+our $VERSION = '1.7';
 
 my $file;
 my $title = 'Ensembl Data';
@@ -32,6 +32,8 @@ my $VERBOSE = 1;
 my $DEBUG = 0;
 my $help;
 my $man;
+my $nsig=2;
+my $cols2 = '';
 
 GetOptions (
    'in=s'      => \$file,
@@ -42,6 +44,8 @@ GetOptions (
    'species=s' => \$species,
    'section=s' => \$ensSection,
    'pval-cols=s' => \$cols,
+   'nsig=i' => \$nsig,
+   'sigfig-cols=s' => \$cols2,
    'verbose!'  => \$VERBOSE,
    'debug!'    => \$DEBUG,
    'man'       => \$man,
@@ -135,7 +139,16 @@ foreach my $head (@$headers) {
 ## print rest of javascript and HTML
 print $html "	          ],
 	       	  'aoColumnDefs': [
-	       	      { 'sType': 'allnumeric', 'aTargets': [ $cols ] }
+	       	      	{ 'sType': 'allnumeric', 'aTargets': [ $cols ] },
+	       	      	{ 'aTargets': [ $cols2 ], 'bUseRendered': false,
+					  'mRender': function ( data, type, full ) {
+					  	if ((parseFloat(data)<1E-2)&&(parseFloat(data)>-1E-2)) {
+	 		        		return parseFloat(parseFloat(data).toPrecision($nsig)).toExponential();
+						} else { 
+	 		               	return parseFloat(data).toPrecision($nsig);
+						}
+            		  }
+					}
 	       	  ],
 	       	  'aaSorting': [],
 	           'aLengthMenu': [[25, 50, 100, 200, -1], [25, 50, 100, 200, 'All']],
@@ -318,6 +331,14 @@ Specify species. For ensembl genomes needs to be the full name joined with an un
 =item B<--pval-cols>
 
 Provide a comma-separated list of column indexes (starting at 0) which have scientific notation data. [default: none]
+
+=item B<--sigfig-cols>
+
+Provide a comma-separated list of column indexes (starting at 0) which you want to present rounded to nsig significant figures. [default: none]
+
+=item B<--nsig>
+
+An integer for how many significant figures to applu to the columns indicated with --sigfig-cols. [default: 2]
 
 =item B<--out>
 
