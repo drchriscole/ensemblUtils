@@ -16,7 +16,7 @@ use File::Basename;
 # requires that ensembl perl API is in $PATH
 use Bio::EnsEMBL::Registry;
 
-our $VERSION = '1.7';
+our $VERSION = '1.7.1';
 
 my $file;
 my $title = 'Ensembl Data';
@@ -27,13 +27,13 @@ my $ensSection;
 my $ensURL;
 my $desc = 0;
 my $species = 'human';
-my $cols = '';
+my $pcols = '';
+my $nsig=2;
+my $scols = '';
 my $VERBOSE = 1;
 my $DEBUG = 0;
 my $help;
 my $man;
-my $nsig=2;
-my $cols2 = '';
 
 GetOptions (
    'in=s'      => \$file,
@@ -43,9 +43,9 @@ GetOptions (
    'check-ensembl!' => \$check,
    'species=s' => \$species,
    'section=s' => \$ensSection,
-   'pval-cols=s' => \$cols,
-   'nsig=i' => \$nsig,
-   'sigfig-cols=s' => \$cols2,
+   'pval-cols=s' => \$pcols,
+   'nsig=i'    => \$nsig,
+   'sigfig-cols=s' => \$scols,
    'verbose!'  => \$VERBOSE,
    'debug!'    => \$DEBUG,
    'man'       => \$man,
@@ -139,8 +139,8 @@ foreach my $head (@$headers) {
 ## print rest of javascript and HTML
 print $html "	          ],
 	       	  'aoColumnDefs': [
-	       	      	{ 'sType': 'allnumeric', 'aTargets': [ $cols ] },
-	       	      	{ 'aTargets': [ $cols2 ], 'bUseRendered': false,
+	       	      	{ 'sType': 'allnumeric', 'aTargets': [ $pcols ] },
+	       	      	{ 'aTargets': [ $scols ], 'bUseRendered': false,
 					  'mRender': function ( data, type, full ) {
 					  	if ((parseFloat(data)<1E-2)&&(parseFloat(data)>-1E-2)) {
 	 		        		return parseFloat(parseFloat(data).toPrecision($nsig)).toExponential();
@@ -286,7 +286,7 @@ sub parseTsv {
 
 =head1 SYNOPSIS
 
-create_html_table.pl --in <file> [--id-column <num>] [--check-ensembl|--no-check-ensembl] [--section <string>] [--title <string>] [--species <name>] [--pval-cols <string>] [--out <file>] [--verbose|--no-verbose] [--debug|--no-debug] [--man] [--help]
+create_html_table.pl --in <file> [--id-column <num>] [--check-ensembl|--no-check-ensembl] [--section <string>] [--title <string>] [--species <name>] [--pval-cols <string>] [--sigfig-cols <string>] [--nsig <int>] [--out <file>] [--verbose|--no-verbose] [--debug|--no-debug] [--man] [--help]
 
 =head1 DESCRIPTION
 
