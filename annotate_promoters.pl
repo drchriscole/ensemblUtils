@@ -23,7 +23,7 @@ my $VERBOSE = 1;
 my $DEBUG = 0;
 my $help;
 my $man;
-our $VERSION = '0.13';
+our $VERSION = '0.14';
 
 GetOptions (
    'in=s'      => \$file,
@@ -64,14 +64,15 @@ foreach my $g (@genes) {
    # capture all motif sequence regions
    while ($seq =~ /($qMotif)/g) {
       my $motif = $1;
+      my $len = length($motif);
       print "Match $1 found for gene '$g'\n" if $VERBOSE;
       my $idx = index($seq,$motif); # find where the match is
       
       # report matches is BED format: chr start end name score strand
       if ($strand eq '-1') {
-         printf $OUT "%s\t%d\t%d\t$g:$motif\t100\t-\n", $slice->seq_region_name(), $slice->end()-$idx-9, $slice->end()-$idx
+         printf $OUT "%s\t%d\t%d\t$g:$motif\t100\t-\n", $slice->seq_region_name(), $slice->end()-$idx-$len, $slice->end()-$idx
       } else {
-         printf $OUT "%s\t%d\t%d\t$g:$motif\t100\t+\n", $slice->seq_region_name(), $slice->start()+$idx, $slice->start()+$idx+9
+         printf $OUT "%s\t%d\t%d\t$g:$motif\t100\t+\n", $slice->seq_region_name(), $slice->start()+$idx, $slice->start()+$idx+$len
       }
    } 
 }
