@@ -23,7 +23,7 @@ my $VERBOSE = 1;
 my $DEBUG = 0;
 my $help;
 my $man;
-our $VERSION = '0.10';
+our $VERSION = '0.11';
 
 GetOptions (
    'in=s'      => \$file,
@@ -44,7 +44,7 @@ pod2usage(-msg => 'Please supply a valid filename.') unless ($file && -s $file);
 # get gene list - HGNC symbols, one gene per line
 my @genes = getGeneList($file);
 die "ERROR - no genes found\n" unless (scalar @genes);
-printf "Found %d genes\n", scalar @genes;
+printf "Read %d genes in file '$file'\n", scalar @genes if $VERBOSE;
 
 # for each gene get upstream sequence via ensembl
 open(my $OUT, ">", $out) or die "ERROR - unable to open '$out' for write: ${!}\nDied";
@@ -61,10 +61,10 @@ foreach my $g (@genes) {
       $seq = substr($slice->seq(),0,$promoterLength);
    }
    
-   # capture all NFAT5 consensus sequence regions
+   # capture all motif sequence regions
    while ($seq =~ /($qMotif)/g) {
       my $motif = $1;
-      print "Match! $1\n";
+      print "Match $1 found for gene '$g'\n" if $VERBOSE;
       my $idx = index($seq,$motif); # find where the match is
       
       # report matches is BED format: chr start end name score strand
@@ -101,7 +101,7 @@ sub getPromoterSeq {
    
    my $registry = 'Bio::EnsEMBL::Registry';
    
-   print "Connecting to ensembl...\n";
+   print "Connecting to ensembl...\n" if $VERBOSE;
    $registry->load_registry_from_db(
        -host => 'ensembldb.ensembl.org',
        -port => $port,
