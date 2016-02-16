@@ -23,7 +23,7 @@ my $VERBOSE = 1;
 my $DEBUG = 0;
 my $help;
 my $man;
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
 GetOptions (
    'in=s'      => \$file,
@@ -110,6 +110,7 @@ sub getPromoterSeq {
    ######################################
    
    print "Ensembl API version: ".software_version()."\n" if $DEBUG;
+   print "Genome version: ".$registry->get_adaptor('human', 'core', 'genomecontainer')->get_version()."\n" if $DEBUG;
    my $sliceAdaptor = $registry->get_adaptor('human', 'core', 'slice');
    my $geneAdaptor = $registry->get_adaptor('human', 'core', 'gene');
    
