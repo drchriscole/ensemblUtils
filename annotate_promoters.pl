@@ -23,7 +23,7 @@ my $VERBOSE = 1;
 my $DEBUG = 0;
 my $help;
 my $man;
-our $VERSION = '0.11';
+our $VERSION = '0.12';
 
 GetOptions (
    'in=s'      => \$file,
@@ -85,8 +85,8 @@ sub getPromoterSeq {
    my $genome = shift;
    
    # port controls which genome build is used - default is GRCh37
-   my $port = 3306;
-   $port = 3337 if ($genome eq 'GRCh38');
+   my $port = 3337;
+   $port = 3306 if ($genome eq 'GRCh38');
    
    #### preload the EnsEMBL database ####
    # this is the default location for 
