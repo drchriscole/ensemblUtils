@@ -51,4 +51,13 @@ This example enforces a check of the validity of ensembl gene IDs. Any
 that are not valid are reported and no link to ensembl provided in the
 final output.
 
+## Find motifs in gene promoters
+
+Provide the script a list of genes and it will pull back the defined upstream region and find the motif defined within the sequence. 
+
+All matches are reported as a BED file which can be used in any genome browser worthy of the name.
+
+  perl annotate_promoters.pl --in genes.txt --length 1000 --genome GRCh37 --motif '[AG]CGTG'
+
+
 _There's more to come..._
