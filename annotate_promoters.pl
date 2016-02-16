@@ -23,10 +23,11 @@ my $VERBOSE = 1;
 my $DEBUG = 0;
 my $help;
 my $man;
-our $VERSION = '0.9';
+our $VERSION = '0.10';
 
 GetOptions (
    'in=s'      => \$file,
+   'motif=s'   => \$qMotif,
    'length=i'  => \$promoterLength,
    'genome=s'  => \$genome,
    'out=s'     => \$out,
