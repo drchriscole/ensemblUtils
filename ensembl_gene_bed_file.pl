@@ -23,7 +23,7 @@ my $VERBOSE = 0;
 my $DEBUG = 0;
 my $help;
 my $man;
-our $VERSION = '0.2';
+our $VERSION = '0.3';
 
 ## this script is a modulino, so check who's calling and respond appropriately
 run() unless caller();
@@ -68,7 +68,7 @@ sub writeBedFile {
    close($BED);
 }
 
-# connect to ensembl v75 and extract exon coordinate data for the required gene
+# connect to ensembl and extract exon coordinate data for the required gene
 sub exonCoordinates {
    my $gid = shift;
    my $species = shift;
@@ -98,12 +98,14 @@ sub exonCoordinates {
    
    ## select gene
    my $gene;
-   if ($gid =~ /^ENSG/) {
+   if ($gid =~ /^ENS.*G/) {
       # retrieve via stableid
       $gene = $gene_adaptor->fetch_by_stable_id($gid);
    } else {
-      my $g = $gene_adaptor->fetch_all_by_external_name($gid, 'HGNC');
-      die "ERROR - found ".scalar @$g." genes with the name '$gid'. Try again?\n" if (scalar @$g > 1);
+      #my $g = $gene_adaptor->fetch_all_by_external_name($gid, 'HGNC');
+      my $g = $gene_adaptor->fetch_all_by_display_label($gid);
+   
+      die "ERROR - found ".scalar @$g." genes with the name '$gid'. Try using an ensembl stable ID instead.\n" if (scalar @$g > 1);
       die "ERROR - no genes found with the name '$gid'. Try again.\n" unless (scalar @$g);
       $gene = shift @$g;
    }
