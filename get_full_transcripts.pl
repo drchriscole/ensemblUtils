@@ -24,7 +24,7 @@ my $VERBOSE = 1;
 my $DEBUG = 0;
 my $help;
 my $man;
-our $VERSION = '0.1';
+our $VERSION = '0.2';
 
 GetOptions (
    'species=s' => \$species,
@@ -56,7 +56,7 @@ my $n = 0;
 foreach my $t (@$trans) {
    last if ($n == 10);
    my $bseq = $t->seq();
-   printf ">%s %s:%s:%s:%s\n%s\n", $t->stable_id, $t->biotype, $t->seqname, $t->start, $t->end,$bseq->seq;
+   printf ">%s %s:%s:%s:%s:%s\n%s\n", $t->stable_id, $t->biotype, $t->seqname, $t->strand, $t->start, $t->end,$bseq->seq;
    ++$n;
 }
 
