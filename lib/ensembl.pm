@@ -1,6 +1,6 @@
 package ensembl;
 
-our $VERSION = '0.1';
+our $VERSION = '0.2';
 
 =head1 NAME
 
@@ -88,7 +88,7 @@ sub _checkSpecies {
    my $species = shift;
    
    my %mainSpecies;
-   $mainSpecies{$_}++ foreach (qw/chicken Gallus_gallus human Homo_sapiens mouse Mus_musculus yeast Saccharomyces_cerevisae/);
+   $mainSpecies{$_}++ foreach (qw/chicken Gallus_gallus human Homo_sapiens mouse Mus_musculus Saccharomyces_cerevisiae/);
    
    if (exists($mainSpecies{$species})) {
       $self->_isEnsemblMain(1);
