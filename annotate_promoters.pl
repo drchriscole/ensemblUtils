@@ -12,7 +12,10 @@ use warnings;
 use Getopt::Long qw(:config auto_version);
 use Pod::Usage;
 use File::Basename;
-use IO::Uncompress::Gunzip qw(gunzip $GunzipError);
+use FindBin qw($Bin);
+use lib "$Bin/lib";
+use ensembl;
+use Bio::EnsEMBL::ApiVersion;
 
 my $file;
 my $qMotif = '[AG]CGTG'; # HRE motif
@@ -23,7 +26,7 @@ my $VERBOSE = 1;
 my $DEBUG = 0;
 my $help;
 my $man;
-our $VERSION = '0.14';
+our $VERSION = '1.0';
 
 GetOptions (
    'in=s'      => \$file,
@@ -46,11 +49,23 @@ my @genes = getGeneList($file);
 die "ERROR - no genes found\n" unless (scalar @genes);
 printf "Read %d genes in file '$file'\n", scalar @genes if $VERBOSE;
 
+# load ensembl object
+printf "NOTE: using Ensembl API version %s\n", software_version() if $VERBOSE;
+my $ens = ensembl->new(genomeBuild => $genome, VERBOSE => $VERBOSE);
+print "Species: ", $ens->species, "\n" if $VERBOSE;
+
+# connect to ensembl and do some checks
+my $registry = $ens->connect();
+print "Genome version: ".$registry->get_adaptor('human', 'core', 'genomecontainer')->get_version()."\n" if $DEBUG;
+my $sliceAdaptor = $registry->get_adaptor('human', 'core', 'slice');
+my $geneAdaptor = $registry->get_adaptor('human', 'core', 'gene');
+
+
 # for each gene get upstream sequence via ensembl
 open(my $OUT, ">", $out) or die "ERROR - unable to open '$out' for write: ${!}\nDied";
 print $OUT "track name=\"Motif_BS\"\n";
 foreach my $g (@genes) {
-   my ($slice, $strand) = getPromoterSeq($g, $promoterLength, $genome);   
+   my ($slice, $strand) = getPromoterSeq($geneAdaptor->fetch_by_display_label($g), $promoterLength);   
    
    # check strand and revComp if on reverse strand
    # only look at promoter part of seq - ensembl returns whole gene + up/down stream region
@@ -78,50 +93,18 @@ foreach my $g (@genes) {
 }
 close($OUT);
 
-## for a given HGNC gene name contact ensembl for gene and +/- padding region,
+## for a given ensembl gene object and +/- padding region,
 ## return slice object and strand
 sub getPromoterSeq {
    my $gene = shift;
    my $length = shift;
-   my $genome = shift;
    
-   # port controls which genome build is used - default is GRCh37
-   my $port = 3337;
-   $port = 3306 if ($genome eq 'GRCh38');
+   die "ERROR - no ensembl gene found for '$gene'\n" unless (defined $gene);
+   printf "Found %s stableID for '$gene'\n", $gene->stable_id() if $DEBUG;
    
-   #### preload the EnsEMBL database ####
-   # this is the default location for 
-   # bioperl on the cluster.
-   # The ensembl modules are version
-   # specific: either hardcode here or
-   # set in PERL5LIB
-   #use lib '/sw/opt/ensembl-api/bioperl-live';
-   #use lib '/sw/opt/ensembl-api/81/ensembl/modules';
-   use Bio::EnsEMBL::Registry;
-   use Bio::EnsEMBL::ApiVersion;
-   
-   my $registry = 'Bio::EnsEMBL::Registry';
-   
-   print "Connecting to ensembl...\n" if $VERBOSE;
-   $registry->load_registry_from_db(
-       -host => 'ensembldb.ensembl.org',
-       -port => $port,
-       -user => 'anonymous'
-   );
-   ######################################
-   
-   print "Ensembl API version: ".software_version()."\n" if $DEBUG;
-   print "Genome version: ".$registry->get_adaptor('human', 'core', 'genomecontainer')->get_version()."\n" if $DEBUG;
-   my $sliceAdaptor = $registry->get_adaptor('human', 'core', 'slice');
-   my $geneAdaptor = $registry->get_adaptor('human', 'core', 'gene');
-   
-   my $g = $geneAdaptor->fetch_by_display_label($gene);
-   die "ERROR - no ensembl gene found for '$gene'\n" unless (defined $g);
-   printf "Found %s stableID for '$gene'\n", $g->stable_id() if $DEBUG;
-   
-   my $slice = $sliceAdaptor->fetch_by_gene_stable_id($g->stable_id(), $length);
+   my $slice = $sliceAdaptor->fetch_by_gene_stable_id($gene->stable_id(), $length);
    printf "Locus for '$gene' is %s:%d:%d\n", $slice->seq_region_name(), $slice->start(), $slice->end() if $DEBUG;
-   return($slice, $g->strand());
+   return($slice, $gene->strand());
 }
 
 ## parse gene list 
@@ -207,7 +190,7 @@ Full manpage of program.
 
 =head1 AUTHOR
 
-Chris Cole <christian@cole.name>
+Chris Cole <c.cole@dundee.ac.uk>
 
 =head1 COPYRIGHT
 
