@@ -25,7 +25,7 @@ my $VERBOSE = 1;
 my $DEBUG = 0;
 my $help;
 my $man;
-our $VERSION = '0.5';
+our $VERSION = '0.5.1';
 
 GetOptions (
    'species=s' => \$species,
@@ -141,7 +141,7 @@ Full manpage of program.
 
 =head1 AUTHOR
 
-Chris Cole <christian@cole.name>
+Chris Cole <c.cole@dundee.ac.uk>
 
 =head1 COPYRIGHT
 
