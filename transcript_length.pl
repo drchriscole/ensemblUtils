@@ -13,10 +13,10 @@ use Getopt::Long;
 use Pod::Usage;
 use File::Basename;
 
-use lib '/opt/perl/bioperl-live';
-use lib '/opt/perl/ensembl';
-use lib '/opt/perl/ensembl/modules';
-use Bio::EnsEMBL::Registry;
+use FindBin qw($Bin);
+use lib "$Bin/lib";
+use ensembl;
+use Bio::EnsEMBL::ApiVersion;
 
 my $out = 'length.csv';
 my $species;
@@ -24,6 +24,7 @@ my $VERBOSE = 1;
 my $DEBUG = 0;
 my $help;
 my $man;
+our $VERSION = '0.9';
 
 GetOptions (
    'out=s'     => \$out,
@@ -38,11 +39,17 @@ pod2usage(-verbose => 2) if ($man);
 pod2usage(-verbose => 1) if ($help);
 pod2usage(-msg => 'Please supply a species name.') unless ($species);
 
-my $registry = connectEnsemblRegistry($species);
-my $gene_adaptor = $registry->get_adaptor($species, 'Core', 'Gene');
-my $trans_adaptor = $registry->get_adaptor($species, 'Core', 'Transcript');
+# load ensembl object
+my $ens = ensembl->new(species => $species, VERBOSE => $VERBOSE);
+print "Species: ", $ens->species, "\n" if $VERBOSE;
+
+# connect to ensembl and do some checks
+my $reg = $ens->connect();
+printf "NOTE: using Ensembl API version %s\n", software_version() if $VERBOSE;
+my $gene_adaptor = $reg->get_adaptor($species, 'Core', 'Gene');
+my $trans_adaptor = $reg->get_adaptor($species, 'Core', 'Transcript');
 die "ERROR - failed to get adaptor for '$species'. Check spelling and that it's a valid Ensembl species. Or check that you're using the correct API.\n" unless (defined($gene_adaptor));
-warn "Warning - API version check has failed. You probably need to update your local install.\n" unless ($registry->version_check($registry->get_DBAdaptor($species, 'core')));
+warn "Warning - API version check has failed. You probably need to update your local install.\n" unless ($reg->version_check($reg->get_DBAdaptor($species, 'core')));
 
 my $genes = $gene_adaptor->fetch_all();
 printf "Found %d genes from '$species'\n", scalar @$genes if $VERBOSE;
@@ -60,37 +67,6 @@ foreach my $g (@$genes) {
    printf $OUT "%s\t$max\n", $g->stable_id();
 }
 
-
-## this is required in order to pick the correct
-## connection parameters to the Ensembl API as 
-## species from the Ensembl Genomes projects differ from the main API
-sub connectEnsemblRegistry {
-   my $species = shift;
-   
-   my $registry = 'Bio::EnsEMBL::Registry';
-   my %main;
-   $main{$_}++ foreach (qw/chicken human mouse/);
-   
-   if ($main{$species}) {  # this is for the main API species
-      print "Connect to main Ensembl API...\n" if $VERBOSE;
-      
-      $registry->load_registry_from_db(
-          -host => 'ensembldb.ensembl.org',
-          -user => 'anonymous'
-      );
-      
-   } else {  # this is for the Ensemble Genomes API species
-      print "Connecting to Ensembl Genomes API...\n" if $VERBOSE;
-      
-      $registry->load_registry_from_db(
-          -host => 'mysql.ebi.ac.uk',
-          -user => 'anonymous',
-          -port => 4157,
-      );
-      
-   }
-   return($registry);
-}
 
 
 =head1 SYNOPSIS
