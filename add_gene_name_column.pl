@@ -13,10 +13,12 @@ use Getopt::Long qw(:config auto_version);
 use Pod::Usage;
 use File::Basename;
 
-use Bio::EnsEMBL::Registry;
+use FindBin qw($Bin);
+use lib "$Bin/lib";
+use ensembl;
 use Bio::EnsEMBL::ApiVersion;
 
-our $VERSION = '1.6';
+our $VERSION = '1.7';
 
 my $file;
 my $species = '';
@@ -58,11 +60,16 @@ $infoCol = $idCol unless (defined($infoCol));   # make info columns adjacent to 
 
 die "ERROR - invalid feature-type '$feature'. Use 'Gene' or 'Transcript'." unless ($feature =~ /^(gene|transcript)$/i); 
 
+# load ensembl object
+my $ens = ensembl->new(species => $species, VERBOSE => $VERBOSE);
+print "Species: ", $ens->species, "\n" if $VERBOSE;
+
+# connect to ensembl and do some checks
+my $reg = $ens->connect();
 printf "NOTE: using Ensembl API version %s\n", software_version();
-my $registry = connectEnsemblRegistry($species);
-my $adaptor = $registry->get_adaptor($species, 'Core', 'Gene');
+my $adaptor = $reg->get_adaptor($species, 'Core', 'Gene');
 die "ERROR - failed to get adaptor for '$species'. Check spelling and that it's a valid Ensembl species. Or check that you're using the correct API.\n" unless (defined($adaptor));
-warn "Warning - API version check has failed. You probably need to update your local install.\n" unless ($registry->version_check($registry->get_DBAdaptor($species, 'core')));
+warn "Warning - API version check has failed. You probably need to update your local install.\n" unless ($reg->version_check($reg->get_DBAdaptor($species, 'core')));
 
 print "Annotating entries...\n" if $VERBOSE;
 open(my $OUT, ">", $out) or die "ERROR - unable to open '$out' for write: ${!}\nDied";
@@ -140,37 +147,6 @@ if ($c == 0) {
 }
 print "\nDone!\n";
 
-## this is required in order to pick the correct
-## connection parameters to the Ensembl API as 
-## species from the Ensembl Genomes projects differ from the main API
-sub connectEnsemblRegistry {
-   my $species = shift;
-   
-   my $registry = 'Bio::EnsEMBL::Registry';
-   my %main;
-   $main{$_}++ foreach (qw/chicken human mouse/);
-   
-   if ($main{$species}) {  # this is for the main API species
-      print "Connect to main Ensembl API...\n" if $VERBOSE;
-      
-      $registry->load_registry_from_db(
-          -host => 'ensembldb.ensembl.org',
-          -user => 'anonymous'
-      );
-      
-   } else {  # this is for the Ensemble Genomes API species
-      print "Connecting to Ensembl Genomes API...\n" if $VERBOSE;
-      
-      $registry->load_registry_from_db(
-          -host => 'mysql-eg-publicsql.ebi.ac.uk',
-          -user => 'anonymous',
-          -port => 4157,
-      );
-      
-   }
-   return($registry);
-}
-
 
 
 =head1 SYNOPSIS
@@ -247,6 +223,6 @@ Full manpage of program.
 
 =head1 AUTHOR
 
-Chris Cole <christian@cole.name>
+Chris Cole <c.cole@dundee.ac.uk>
 
 =cut
