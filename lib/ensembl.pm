@@ -1,6 +1,6 @@
 package ensembl;
 
-our $VERSION = '0.2';
+our $VERSION = '0.3';
 
 =head1 NAME
 
@@ -71,7 +71,7 @@ sub connect {
       print "Connecting to Ensembl Genomes API...\n" if $self->VERBOSE;
       
       $registry->load_registry_from_db(
-          -host => 'mysql.ebi.ac.uk',
+          -host => 'mysql-eg-publicsql.ebi.ac.uk',
           -user => 'anonymous',
           -port => 4157,
       );
