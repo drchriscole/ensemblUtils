@@ -51,9 +51,9 @@ This example enforces a check of the validity of ensembl gene IDs. Any
 that are not valid are reported and no link to ensembl provided in the
 final output.
 
-## Find motifs in gene promoters
+## Find motifs in human gene promoters
 
-Provide the script a list of genes and it will pull back the defined upstream region and find the motif defined within the sequence. 
+Provide the script a list of human genes and it will pull back the defined upstream region and find the motif defined within the sequence. 
 
 All matches are reported as a BED file which can be used in any genome browser worthy of the name.
 
@@ -65,6 +65,6 @@ The default downloads from Ensembl (nor BioMart) include the full-length sequenc
 
 Use this script to retrieve the *whole* transcriptome for your species of interest.
 
-    perl get_full_transcripts.pl --species Arabidopsis_thaliana --out Arabodopsis_transcriptome.fasta
+    perl get_full_transcripts.pl --species Arabidopsis_thaliana --out Arabidopsis_transcriptome.fasta
 
 _There's more to come..._
