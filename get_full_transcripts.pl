@@ -24,7 +24,7 @@ my $VERBOSE = 1;
 my $DEBUG = 0;
 my $help;
 my $man;
-our $VERSION = '0.2';
+our $VERSION = '0.3';
 
 GetOptions (
    'species=s' => \$species,
@@ -52,33 +52,37 @@ die "ERROR - failed to get adaptor for '$species'. Check spelling and that it's 
 my $trans = $trans_adaptor->fetch_all();
 printf "Found %d transcripts\n", scalar @$trans;
 
+open(my $OUT, ">", $out) or die "ERROR - unable to open '$out' for write: ${!}\nDied";
 my $n = 0;
 foreach my $t (@$trans) {
    last if ($n == 10);
    my $bseq = $t->seq();
-   printf ">%s %s:%s:%s:%s:%s\n%s\n", $t->stable_id, $t->biotype, $t->seqname, $t->strand, $t->start, $t->end,$bseq->seq;
+   printf $OUT ">%s %s:%s:%s:%s:%s:%s\n%s\n", $t->stable_id, $t->external_name(), $t->biotype, $t->seqname, $t->start, $t->end, $t->strand,$bseq->seq;
    ++$n;
 }
-
+close($OUT);
 
 =head1 SYNOPSIS
 
-get_full_transcripts.pl --in <file> [--out <file>] [--verbose|--no-verbose] [--version] [--debug|--no-debug] [--man] [--help]
+get_full_transcripts.pl [--species <name>] [--out <file>] [--verbose|--no-verbose] [--version] [--debug|--no-debug] [--man] [--help]
 
 =head1 DESCRIPTION
 
+Ensembl helpfully provide pre-generated files containing sequence datasets, but they don't provide one with full-length transcripts. The nearest they do is cDNAs which only include protein-coding genes, but doesn't include the UTR sequences.
+
+When performing a transcript quantification experiment (e.g. with RNA-seq) a dataset complete with UTRs and non-protein coding genes is required. This scripts fills this gap.
 
 =head1 OPTIONS
 
 =over 5
 
-=item B<--in>
+=item B<--species>
 
-Input file.
+Species name as understood by Ensembl. [Default: 'human']
 
 =item B<--out>
 
-Output filename. [default: STDOUT]
+Output filename. [default: 'transcripts.fasta']
 
 =item B<--version>
 
