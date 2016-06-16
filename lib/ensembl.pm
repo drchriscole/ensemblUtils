@@ -1,6 +1,6 @@
 package ensembl;
 
-our $VERSION = '0.3';
+our $VERSION = '0.4';
 
 =head1 NAME
 
@@ -43,6 +43,13 @@ has 'species' => (
    trigger => \&_checkSpecies
 );
 
+has 'genomeBuild' => (
+   isa => 'Str',
+   is => 'rw',
+   default => 'GRCh38',
+   trigger => \&_checkBuild
+);
+
 has 'VERBOSE' => (
    isa => 'Int',
    is => 'rw',
@@ -59,12 +66,16 @@ sub connect {
    
    my $registry = 'Bio::EnsEMBL::Registry';
    
+   my $port = 3306;
+   $port = 3337 if ($self->genomeBuild eq 'GRCh37' && $self->species eq 'human');
+   
    if ($self->_isEnsemblMain) {  # this is for the main API species
       print "Connect to main Ensembl API...\n" if $self->VERBOSE;
       
       $registry->load_registry_from_db(
           -host => 'ensembldb.ensembl.org',
-          -user => 'anonymous'
+          -user => 'anonymous',
+          -port => $port
       );
       
    } else {  # this is for the Ensemble Genomes API species
@@ -94,6 +105,20 @@ sub _checkSpecies {
       $self->_isEnsemblMain(1);
    } else {
       $self->_isEnsemblMain(0);
+   }
+}
+
+sub _checkBuild {
+   my $self = shift;
+   my $build = shift;
+   
+   if ($self->species eq 'human') {
+      unless ($build eq 'GRCh38' or $build eq 'GRCh37') {
+         carp "Unrecognised human genome build '$build'. Defaulting to 'GRCh38'\n";
+         $self->genomeBuild('GRCh38');
+      }
+   } else {
+      carp "Specifying a genome build is only supported for human. Can only use the default build for this species.\n"
    }
 }
 
