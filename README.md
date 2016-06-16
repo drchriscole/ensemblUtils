@@ -57,7 +57,14 @@ Provide the script a list of genes and it will pull back the defined upstream re
 
 All matches are reported as a BED file which can be used in any genome browser worthy of the name.
 
-  perl annotate_promoters.pl --in genes.txt --length 1000 --genome GRCh37 --motif '[AG]CGTG'
+    perl annotate_promoters.pl --in genes.txt --length 1000 --genome GRCh37 --motif '[AG]CGTG'
 
+## Retrieve full-length transcripts
+
+The default downloads from Ensembl (nor BioMart) include the full-length sequence of the transcriptome nor all transcripts. Typically get the coding sequence for protein-coding genes only.
+
+Use this script to retrieve the *whole* transcriptome for your species of interest.
+
+    perl get_full_transcripts.pl --species Arabidopsis_thaliana --out Arabodopsis_transcriptome.fasta
 
 _There's more to come..._
