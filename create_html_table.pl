@@ -13,10 +13,12 @@ use Getopt::Long qw(:config auto_version);
 use Pod::Usage;
 use File::Basename;
 
-# requires that ensembl perl API is in $PATH
-use Bio::EnsEMBL::Registry;
+use FindBin qw($Bin);
+use lib "$Bin/lib";
+use ensembl;
+use Bio::EnsEMBL::ApiVersion;
 
-our $VERSION = '1.7.1';
+our $VERSION = '1.8';
 
 my $file;
 my $title = 'Ensembl Data';
@@ -58,7 +60,11 @@ pod2usage(-msg => 'Please supply a valid filename.') if (!$file or !-e $file);
 
 my $gene_adaptor;
 if ($check) {
-   my $registry = connectEnsemblRegistry($species);
+   # load ensembl object
+   my $ens = ensembl->new(species => $species, VERBOSE => $VERBOSE);
+   print "Species: ", $ens->species, "\n" if $VERBOSE;
+
+   my $registry = $ens->connect();
    $gene_adaptor = $registry->get_adaptor($species, 'Core', 'Gene');
    die "ERROR - failed to get gene adaptor for '$species'. Check spelling and that it's a valid Ensembl species. Or check that you're using the correct API.\n" unless (defined($gene_adaptor));
    warn "Warning - API version check has failed. You probably need to update your local install.\n" unless ($registry->version_check($registry->get_DBAdaptor($species, 'core')));
@@ -184,37 +190,6 @@ print $html "	          ],
 close($html);
 print "Done.\n" if $VERBOSE;
 exit;
-
-## this is required in order to pick the correct
-## connection parameters to the Ensembl API as 
-## species from the Ensembl Genomes projects differ from the main API
-sub connectEnsemblRegistry {
-   my $species = shift;
-   
-   my $registry = 'Bio::EnsEMBL::Registry';
-   my %main;
-   $main{$_}++ foreach (qw/chicken human mouse/);
-   
-   if ($main{$species}) {  # this is for the main API species
-      print "Connect to main Ensembl API...\n" if $VERBOSE;
-      
-      $registry->load_registry_from_db(
-          -host => 'ensembldb.ensembl.org',
-          -user => 'anonymous'
-      );
-      
-   } else {  # this is for the Ensemble Genomes API species
-      print "Connecting to Ensembl Genomes API...\n" if $VERBOSE;
-      
-      $registry->load_registry_from_db(
-          -host => 'mysql-eg-publicsql.ebi.ac.uk',
-          -user => 'anonymous',
-          -port => 4157,
-      );
-      
-   }
-   return($registry);
-}
 
 ## the ensembl URL is dependent on species, so generate it here
 sub constructURL {
@@ -364,6 +339,6 @@ Full manpage of program.
 
 =head1 AUTHOR
 
-Chris Cole <christian@cole.name>
+Chris Cole <c.cole@dundee.ac.uk>
 
 =cut
