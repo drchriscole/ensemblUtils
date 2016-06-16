@@ -24,7 +24,7 @@ my $VERBOSE = 1;
 my $DEBUG = 0;
 my $help;
 my $man;
-our $VERSION = '0.3';
+our $VERSION = '0.4';
 
 GetOptions (
    'species=s' => \$species,
@@ -38,24 +38,27 @@ GetOptions (
 pod2usage(-verbose => 2) if ($man);
 pod2usage(-verbose => 1) if ($help);
 
+# load ensembl object
 my $ens = ensembl->new(species => $species);
-
 print "Species: ", $ens->species, "\n";
 
+# connect to ensembl and do some checks
 my $reg = $ens->connect();
 printf "NOTE: using Ensembl API version %s\n", software_version();
 warn "Warning - API version check has failed. You probably need to update your local install.\n" unless ($reg->version_check($reg->get_DBAdaptor($species, 'core')));
 
+# get transcript set
 my $trans_adaptor = $reg->get_adaptor($species, 'Core', 'Transcript');
 die "ERROR - failed to get adaptor for '$species'. Check spelling and that it's a valid Ensembl species. Or check that you're using the correct API.\n" unless (defined($trans_adaptor));
-
 my $trans = $trans_adaptor->fetch_all();
+die "ERROR - no transcripts found\n", unless (scalar @$trans);
 printf "Found %d transcripts\n", scalar @$trans;
 
+# iterate through transcripts and print them out
 open(my $OUT, ">", $out) or die "ERROR - unable to open '$out' for write: ${!}\nDied";
 my $n = 0;
 foreach my $t (@$trans) {
-   last if ($n == 10);
+   last if ($DEBUG && $n == 10);
    my $bseq = $t->seq();
    printf $OUT ">%s %s:%s:%s:%s:%s:%s\n%s\n", $t->stable_id, $t->external_name(), $t->biotype, $t->seqname, $t->start, $t->end, $t->strand,$bseq->seq;
    ++$n;
