@@ -1,6 +1,6 @@
 package ensembl;
 
-our $VERSION = '0.4.1';
+our $VERSION = '0.5';
 
 =head1 NAME
 
@@ -92,6 +92,8 @@ Returns: Ensembl registry object
 sub connect {
    my $self = shift;
    
+   # check species exists
+   die "ERROR - no species has been set\n" unless ($self->species());
    my $registry = 'Bio::EnsEMBL::Registry';
    
    my $port = 3306;
