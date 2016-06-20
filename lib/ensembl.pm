@@ -1,6 +1,6 @@
 package ensembl;
 
-our $VERSION = '0.4';
+our $VERSION = '0.4.1';
 
 =head1 NAME
 
@@ -9,7 +9,9 @@ our $VERSION = '0.4';
 =head1 SYNOPSIS
 
   use ensembl;
-  my $ens = ensembl->new();
+  my $ens = ensembl->new();                   # create new ensembl object
+  $ens->species("Saccharomyces_cerevisiae");  # specify species
+  my $registry = $ens->connect();             # connect to Ensembl database
 
 =head1 DESCRIPTION
 
@@ -22,18 +24,22 @@ use Carp;
 use DBI;
 use Bio::EnsEMBL::Registry;
 
-
-=item B<VERBOSE()>
-
-Accessor method for 'VERBOSE' attribute. 
-
-=cut
-
+## internal attribute defining whether given species is from
+## main Ensembl database or Ensembl Genomes
 has '_isEnsemblMain' => (
    isa => 'Int',
    is => 'rw',
    default => 1
 );
+
+=item B<species()>
+
+Setter/Getter method for 'species' attribute. Needs to be a valid Ensembl/Ensembl Genomes species.
+
+Default: 'human'
+Returns: string
+
+=cut
 
 has 'species' => (
    isa => 'Str',
@@ -43,12 +49,30 @@ has 'species' => (
    trigger => \&_checkSpecies
 );
 
+=item B<genomeBuild()>
+
+Setter/Getter method for the 'genomeBuild' attribute. Define which genome build to use. Only of relevance to human.
+
+Default: 'GRCh38' 
+Returns: string
+
+=cut
+
 has 'genomeBuild' => (
    isa => 'Str',
    is => 'rw',
    default => 'GRCh38',
    trigger => \&_checkBuild
 );
+
+=item B<VERBOSE()>
+
+Setter/Getter method for 'VERBOSE' attribute. 
+
+Default: 1
+Returns: int
+
+=cut
 
 has 'VERBOSE' => (
    isa => 'Int',
@@ -57,12 +81,16 @@ has 'VERBOSE' => (
 );
 
 
-## this is required in order to pick the correct
-## connection parameters to the Ensembl API as 
-## species from the Ensembl Genomes projects differ from the main API
+=item B<connect()>
+
+Method to connect to Ensembl. Requires species to be set.
+
+Returns: Ensembl registry object
+
+=cut
+
 sub connect {
    my $self = shift;
-   my $species = shift;
    
    my $registry = 'Bio::EnsEMBL::Registry';
    
@@ -108,6 +136,7 @@ sub _checkSpecies {
    }
 }
 
+## internal method checking the defined build is valid or appropriate
 sub _checkBuild {
    my $self = shift;
    my $build = shift;
