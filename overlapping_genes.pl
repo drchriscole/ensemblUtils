@@ -11,7 +11,9 @@ use warnings;
 
 use Getopt::Long qw(:config auto_version);
 use Pod::Usage;
-use Bio::EnsEMBL::Registry;
+use FindBin qw($Bin);
+use lib "$Bin/lib";
+use ensembl;
 use Bio::EnsEMBL::ApiVersion;
 
 my $species = 'human';
@@ -21,7 +23,7 @@ my $VERBOSE = 1;
 my $DEBUG = 0;
 my $help;
 my $man;
-our $VERSION = '0.1';
+our $VERSION = '0.2';
 
 GetOptions (
    'species=s' => \$species,
@@ -36,15 +38,14 @@ pod2usage(-verbose => 2) if ($man);
 pod2usage(-verbose => 1) if ($help);
 
 
-## Load ensembl
-my $registry = 'Bio::EnsEMBL::Registry';
+# load ensembl object
+printf "NOTE: using Ensembl API version %s\n", software_version() if $VERBOSE;
+my $ens = ensembl->new(species => $species, VERBOSE => $VERBOSE);
+print "Species: ", $ens->species, "\n" if $VERBOSE;
 
-$registry->load_registry_from_db(
-    -host => 'ensembldb.ensembl.org',
-    -user => 'anonymous'
-);
-
-printf "NOTE: using Ensembl API version %s\n", software_version();
+# connect to ensembl and do some checks
+my $registry = $ens->connect();
+warn "Warning - API version check has failed. You probably need to update your local install.\n" unless ($registry->version_check($registry->get_DBAdaptor($species, 'core')));
 
 
 ## clean chromosome definition
