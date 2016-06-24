@@ -13,8 +13,10 @@ use warnings;
 use Carp;
 use Getopt::Long qw(:config auto_version);
 use Pod::Usage;
-use File::Basename;
-use IO::Uncompress::Gunzip qw(gunzip $GunzipError);
+use FindBin qw($Bin);
+use lib "$Bin/lib";
+use ensembl;
+use Bio::EnsEMBL::ApiVersion;
 
 my $geneID;
 my $species = 'human';
@@ -23,7 +25,7 @@ my $VERBOSE = 0;
 my $DEBUG = 0;
 my $help;
 my $man;
-our $VERSION = '0.3';
+our $VERSION = '0.4';
 
 ## this script is a modulino, so check who's calling and respond appropriately
 run() unless caller();
@@ -47,7 +49,16 @@ sub run {
    pod2usage(-verbose => 1) if ($help);
    pod2usage(-msg => 'Please supply a gene ID.') unless ($geneID);
 
-   my $exons = exonCoordinates($geneID, $species);
+   # load ensembl object
+   my $ens = ensembl->new(species => $species, VERBOSE => $VERBOSE);
+   print "Species: ", $ens->species, "\n" if $VERBOSE;
+   
+   # connect to ensembl and do some checks
+   my $reg = $ens->connect();
+   printf "NOTE: using Ensembl API version %s\n", software_version() if $VERBOSE;
+   warn "Warning - API version check has failed. You probably need to update your local install.\n" unless ($reg->version_check($reg->get_DBAdaptor($species, 'core')));
+
+   my $exons = exonCoordinates($reg, $geneID, $species);
    printf "Found %d exons\n", scalar keys %$exons if $VERBOSE;
    writeBedFile($exons, $out);
    print  "Written exon coordinates for gene '$geneID' to '$out'\n";
@@ -70,25 +81,10 @@ sub writeBedFile {
 
 # connect to ensembl and extract exon coordinate data for the required gene
 sub exonCoordinates {
+   my $registry = shift;
    my $gid = shift;
    my $species = shift;
-   
-   #### preload the EnsEMBL database ####
-   # assumes PERL5LIB is already loaded 
-   # with correct paths to API modules
-   use Bio::EnsEMBL::Registry;
-   use Bio::EnsEMBL::ApiVersion;
-   
-   my $registry = 'Bio::EnsEMBL::Registry';
-   
-   print "Connecting to ensembl...\n" if $VERBOSE;
-   $registry->load_registry_from_db(
-       -host => 'ensembldb.ensembl.org',
-       -user => 'anonymous'
-   );
-   ######################################
-   
-   print "Ensembl API version: ".software_version()."\n" if $VERBOSE;
+      
    my $gene_adaptor = $registry->get_adaptor($species, 'core', 'gene');
    die "ERROR - unable to connect to Ensembl for genes\n" unless ($gene_adaptor);
    my $trans_adaptor = $registry->get_adaptor($species, 'core', 'transcript');
@@ -186,7 +182,7 @@ Full manpage of program.
 
 =head1 AUTHOR
 
-Chris Cole <christian@cole.name>
+Chris Cole <c.cole@dundee.ac.uk>
 
 =head1 COPYRIGHT
 
