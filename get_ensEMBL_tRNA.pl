@@ -11,14 +11,19 @@ use warnings;
 
 use Getopt::Long;
 use Pod::Usage;
-use File::Basename;
+use FindBin qw($Bin);
+use lib "$Bin/lib";
+use ensembl;
+use Bio::EnsEMBL::ApiVersion;
 
 $| = 1; # turn on autoflush
 my $help;
 my $keepPseudogenes = 1;
-my $species = 'Human';
+my $species = 'human';
 my $out;
 my $man;
+my $VERBOSE = 1;
+our $VERSION = '0.5';
 
 GetOptions (
 	'pseudo!'   => \$keepPseudogenes,
@@ -34,21 +39,14 @@ pod2usage(-verbose => 1) if ($help);
 
 $out = "ensEMBL_${species}_tRNAs.fasta";
 
-#### preload the EnsEMBL database ####
-# required for the get_genes() function,
-# but better to connect once here rather
-# than each time a search is done
-use lib '/opt/perl/ensembl/modules';
-use lib '/opt/lib/perl/bioperl-live';
-use Bio::EnsEMBL::Registry;
+# load ensembl object
+my $ens = ensembl->new(species => $species, VERBOSE => $VERBOSE);
+print "Species: ", $ens->species, "\n" if $VERBOSE;
 
-my $registry = 'Bio::EnsEMBL::Registry';
-
-$registry->load_registry_from_db(
-    -host => 'ensembldb.ensembl.org',
-    -user => 'anonymous'
-);
-######################################
+# connect to ensembl and do some checks
+my $registry = $ens->connect();
+printf "NOTE: using Ensembl API version %s\n", software_version() if $VERBOSE;
+warn "Warning - API version check has failed. You probably need to update your local install.\n" unless ($registry->version_check($registry->get_DBAdaptor($species, 'core')));
 
 ## open output file
 open(my $OUT, ">", $out) or die "ERROR - unable to open '$out' for write: ${!}\nDied";
@@ -57,7 +55,6 @@ open(my $OUT, ">", $out) or die "ERROR - unable to open '$out' for write: ${!}\n
 print "Connecting to Ensembl...\n";
 my $slice_adaptor = $registry->get_adaptor( $species, 'Core', 'Slice' );
 die "ERROR - failed to get gene adaptor for '$species'. Check spelling and that it's a valid Ensembl species. Or check that you're using the correct API.\n" unless (defined($slice_adaptor));
-warn "Warning - API version check has failed. You probably need to update your local install.\n" unless ($registry->version_check($registry->get_DBAdaptor($species, 'core')));
 
 print "Retrieving data...\n";
 my $id = "ENS_tRNA";
@@ -74,15 +71,10 @@ foreach my $slice (@{$slice_adaptor->fetch_all("toplevel")}) {
       }
       
       # determine what kind of chromosome we're dealing with
-      my $chromosome;
-      if ($tRNA->seq_region_name =~ /^NT_|^GL/) {
-         $chromosome = 'supercontig';
-      } else {
-         $chromosome = 'chromosome';
-      }
-      
+      my $chromosome = $tRNA->coord_system_name();
+
       # create new slice of DNA specific to the tRNA
-      my $newSlice = $slice_adaptor->fetch_by_region( $chromosome, $tRNA->seq_region_name, $tRNA->start, $tRNA->end, $tRNA->strand);
+      my $newSlice = $slice_adaptor->fetch_by_region($chromosome , $tRNA->seq_region_name, $tRNA->start, $tRNA->end, $tRNA->strand);
       unless($newSlice){
          my $s = sprintf "$chromosome:%s\t%s\t%s\t%s\n", $tRNA->seq_region_name, $tRNA->start, $tRNA->end, $tRNA->strand;
          die "ERROR - slice failed at: $s\n"
@@ -91,7 +83,7 @@ foreach my $slice (@{$slice_adaptor->fetch_all("toplevel")}) {
       
       # print out sequence data in Fasta format and as close as 
       # possible to the ensEMBL ncRNA format
-      printf $OUT ">$id%05d ncrna:tRNA_%s $chromosome:NCBI36:%s:%s:%s:%s gene:unknown\n$sequence\n", $n, $tRNA->display_label, $tRNA->seq_region_name, $tRNA->start,$tRNA->end, $tRNA->strand;
+      printf $OUT ">$id%05d ncrna:tRNA_%s %s:%s:%s:%s gene:unknown\n$sequence\n", $n, $tRNA->display_label, $tRNA->seqname(), $tRNA->start,$tRNA->end, $tRNA->strand;
       ++$n;
    }
 }
@@ -136,6 +128,6 @@ Full manpage of program.
 
 =head1 AUTHOR
 
-Chris Cole <christian@cole.name>
+Chris Cole <c.cole@dundee.ac.uk>
 
 =cut
