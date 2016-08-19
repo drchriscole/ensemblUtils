@@ -26,7 +26,7 @@ my $VERBOSE = 1;
 my $DEBUG = 0;
 my $help;
 my $man;
-our $VERSION = '0.4';
+our $VERSION = '0.5';
 
 GetOptions (
    'in=s'      => \$file,
@@ -119,7 +119,7 @@ close($OUT);
 
 =head1 SYNOPSIS
 
-annotate_bed.pl --in <file> [--species <speices>] [--genome-build <build>] [--out <file>] [--verbose|--no-verbose] [--version] [--debug|--no-debug] [--man] [--help]
+annotate_bed.pl --in <file> [--species <speices>] [--genome-build <build>] [--unique-names|--no-unique-names] [--out <file>] [--verbose|--no-verbose] [--version] [--debug|--no-debug] [--man] [--help]
 
 =head1 DESCRIPTION
 
@@ -142,6 +142,10 @@ Species name as recognisable by ensembl [default: human]
 =item B<--genome-build>
 
 Genome build - only relevant for human [ default: GRCh38]
+
+=item B<--unique-names>
+
+Specify whether to make names unqiue or not [default: unique]
 
 =item B<--out>
 
