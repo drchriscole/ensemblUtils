@@ -25,7 +25,7 @@ my $VERBOSE = 1;
 my $DEBUG = 0;
 my $help;
 my $man;
-our $VERSION = '0.2';
+our $VERSION = '0.3';
 
 GetOptions (
    'in=s'      => \$file,
@@ -106,10 +106,13 @@ close($OUT);
 
 =head1 SYNOPSIS
 
-annotate_bed.pl --in <file> [--out <file>] [--verbose|--no-verbose] [--version] [--debug|--no-debug] [--man] [--help]
+annotate_bed.pl --in <file> [--species <speices>] [--genome-build <build>] [--out <file>] [--verbose|--no-verbose] [--version] [--debug|--no-debug] [--man] [--help]
 
 =head1 DESCRIPTION
 
+Script to take a BED file and annotate the name (4th) column with the gene(s) that each line in the bed file overlaps with in the genome.
+
+NB: any existing name column information will be overwritten
 
 =head1 OPTIONS
 
@@ -117,11 +120,19 @@ annotate_bed.pl --in <file> [--out <file>] [--verbose|--no-verbose] [--version] 
 
 =item B<--in>
 
-Input file.
+Input file in BED format.
+
+=item B<--species>
+
+Species name as recognisable by ensembl [default: human]
+
+=item B<--genome-build>
+
+Genome build - only relevant for human [ default: GRCh38]
 
 =item B<--out>
 
-Output filename. [default: STDOUT]
+Output filename. [default: annotate.bed]
 
 =item B<--version>
 
