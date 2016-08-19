@@ -19,16 +19,18 @@ use Bio::EnsEMBL::ApiVersion;
 
 my $file;
 my $species = 'human';
+my $build = 'GRCh38';
 my $out = 'annotated.bed';
 my $VERBOSE = 1;
 my $DEBUG = 0;
 my $help;
 my $man;
-our $VERSION = '0.1';
+our $VERSION = '0.2';
 
 GetOptions (
    'in=s'      => \$file,
    'species=s' => \$species,
+   'genome-build=s' => \$build,
    'out=s'     => \$out,
    'verbose!'  => \$VERBOSE,
    'debug!'    => \$DEBUG,
@@ -41,7 +43,7 @@ pod2usage(-verbose => 1) if ($help);
 pod2usage(-msg => 'Please supply a valid filename.') unless ($file && -s $file);
 
 # load ensembl object
-my $ens = ensembl->new(species => $species, VERBOSE => $VERBOSE);
+my $ens = ensembl->new(species => $species, genomeBuild => $build, VERBOSE => $VERBOSE);
 print "Species: ", $ens->species, "\n" if $VERBOSE;
 
 # connect to ensembl and do some checks
@@ -59,11 +61,11 @@ open(my $BED, "<", $file) or die "ERROR - unable to open '$file': ${!}\nDied";
 while(<$BED>) {
    ## skip track and browser lines
    if (/^track/) {
-      print $OUT;
+      print $OUT $_;
       next;
    }
    if (/^browser/) {
-      print $OUT;
+      print $OUT $_;
       next;
    }
    chomp();
