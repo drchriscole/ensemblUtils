@@ -21,16 +21,18 @@ my $file;
 my $species = 'human';
 my $build = 'GRCh38';
 my $out = 'annotated.bed';
+my $unique = 1;
 my $VERBOSE = 1;
 my $DEBUG = 0;
 my $help;
 my $man;
-our $VERSION = '0.3';
+our $VERSION = '0.4';
 
 GetOptions (
    'in=s'      => \$file,
    'species=s' => \$species,
    'genome-build=s' => \$build,
+   'unique-names!' => \$unique,
    'out=s'     => \$out,
    'verbose!'  => \$VERBOSE,
    'debug!'    => \$DEBUG,
@@ -56,6 +58,7 @@ my $slice_adaptor = $reg->get_adaptor($species, "core", "slice");
 my $gene_adaptor = $reg->get_adaptor($species, "core", "gene");
 
 # read in BED file
+my %geneNames;
 open(my $OUT, ">", $out) or die "ERROR - unable to open '$out' for write: ${!}\nDied";
 open(my $BED, "<", $file) or die "ERROR - unable to open '$file': ${!}\nDied";
 while(<$BED>) {
@@ -83,7 +86,7 @@ while(<$BED>) {
    my $slice = $slice_adaptor->fetch_by_region('chromosome', $chrom, $chromStart, $chromEnd, $strand);
    warn "Warning - region '' at line $. is unrecognised\n" unless (defined($slice));
    my $genes = $gene_adaptor->fetch_all_by_Slice($slice);
-   my $geneStr = '-';
+   my $geneStr = 'Intergenic';
    if (scalar @$genes) {
       my @gids;
       foreach my $g (@$genes) {
@@ -91,14 +94,24 @@ while(<$BED>) {
       }
       $geneStr = join(":",@gids);
    }
+   $geneNames{$geneStr}++;
    
+   # Write out
+   print $OUT "$chrom\t$chromStart\t$chromEnd";
+   
+   # uniquify the gene names (or not)
+   if ($unique) {
+      printf $OUT "\t${geneStr}_%d", $geneNames{$geneStr};
+   } else {
+      print $OUT "\t$geneStr";
+   }
+
    # Overwrite existing name column (if there is one), but keep other columns
    if (scalar @rest > 1) {
       my $null = pop @rest;
-      printf $OUT "$chrom\t$chromStart\t$chromEnd\t$geneStr\t%s\n", join("\t",@rest);
-   } else {
-      printf $OUT "$chrom\t$chromStart\t$chromEnd\t$geneStr\n";
+      printf $OUT "\t%s", $geneNames{$geneStr}, join("\t",@rest);
    }
+   print $OUT "\n";
 }
 close($BED);
 close($OUT);
