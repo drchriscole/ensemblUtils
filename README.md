@@ -67,4 +67,12 @@ Use this script to retrieve the *whole* transcriptome for your species of intere
 
     perl get_full_transcripts.pl --species Arabidopsis_thaliana --out Arabidopsis_transcriptome.fasta
 
+## Annotate BED files with gene names
+
+BED files are ubiquitous in genomics, but often are devoid of any information.
+
+Use this script to quickly provide the genes that overlap each entry in the BED file.
+
+    perl annotate_bed.pl --in file.bed --species human --genome-build GRCh37 --out annotated.bed
+
 _There's more to come..._
