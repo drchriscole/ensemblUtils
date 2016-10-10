@@ -25,7 +25,7 @@ my $VERBOSE = 0;
 my $DEBUG = 0;
 my $help;
 my $man;
-our $VERSION = '0.4';
+our $VERSION = '0.5';
 
 ## this script is a modulino, so check who's calling and respond appropriately
 run() unless caller();
@@ -100,8 +100,15 @@ sub exonCoordinates {
    } else {
       #my $g = $gene_adaptor->fetch_all_by_external_name($gid, 'HGNC');
       my $g = $gene_adaptor->fetch_all_by_display_label($gid);
-   
-      die "ERROR - found ".scalar @$g." genes with the name '$gid'. Try using an ensembl stable ID instead.\n" if (scalar @$g > 1);
+      
+      if (scalar @$g > 1) {
+         my $count = scalar @$g;
+         my $str = "";
+         foreach $gene (@$g) {
+            $str .= sprintf("   %s\t%s\t%s\n",$gene->stable_id(), $gene->external_name(), $gene->description());
+         }
+         die "ERROR - found $count genes with the name '$gid'. Try using an ensembl stable ID instead:\n$str\n";
+      }
       die "ERROR - no genes found with the name '$gid'. Try again.\n" unless (scalar @$g);
       $gene = shift @$g;
    }
