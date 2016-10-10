@@ -25,7 +25,7 @@ my $VERBOSE = 0;
 my $DEBUG = 0;
 my $help;
 my $man;
-our $VERSION = '0.5';
+our $VERSION = '0.6';
 
 ## this script is a modulino, so check who's calling and respond appropriately
 run() unless caller();
@@ -100,6 +100,7 @@ sub exonCoordinates {
    } else {
       #my $g = $gene_adaptor->fetch_all_by_external_name($gid, 'HGNC');
       my $g = $gene_adaptor->fetch_all_by_display_label($gid);
+      $g = ensembl->filterLRG($g); # filter out unwanted LRG 'genes'
       
       if (scalar @$g > 1) {
          my $count = scalar @$g;
