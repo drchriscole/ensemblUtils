@@ -1,6 +1,6 @@
 package ensembl;
 
-our $VERSION = '0.5';
+our $VERSION = '0.6';
 
 =head1 NAME
 
@@ -119,6 +119,35 @@ sub connect {
       
    }
    return($registry);
+}
+
+=item B<filterLRG()>
+
+Method to filter out LRG genes from a gene list
+
+Requires: ensembl Bio::EnsEMBL::Gene listref
+Returns: ensembl Bio::EnsEMBL::Gene listref
+
+=cut
+
+sub filterLRG {
+   my $self = shift;
+   my $genes = shift;
+   
+   my $count = scalar @$genes;
+   my @geneList;
+   
+   # go through the gene list and only keep
+   # entries which are not 'LRG_gene' biotype.
+   while($count) {
+      my $gene = shift @$genes;
+      
+      if ($gene->biotype ne 'LRG_gene') {
+         push @geneList, $gene;
+      }
+      --$count;
+   }
+   return(\@geneList);
 }
 
 # method to check whether a species in the Ensembl main table or not
