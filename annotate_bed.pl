@@ -26,7 +26,7 @@ my $VERBOSE = 1;
 my $DEBUG = 0;
 my $help;
 my $man;
-our $VERSION = '0.5';
+our $VERSION = '0.6';
 
 GetOptions (
    'in=s'      => \$file,
@@ -108,8 +108,8 @@ while(<$BED>) {
 
    # Overwrite existing name column (if there is one), but keep other columns
    if (scalar @rest > 1) {
-      my $null = pop @rest;
-      printf $OUT "\t%s", $geneNames{$geneStr}, join("\t",@rest);
+      my $null = shift @rest;
+      printf $OUT "\t%s", join("\t",@rest);
    }
    print $OUT "\n";
 }
@@ -125,7 +125,7 @@ annotate_bed.pl --in <file> [--species <speices>] [--genome-build <build>] [--un
 
 Script to take a BED file and annotate the name (4th) column with the gene(s) that each line in the bed file overlaps with in the genome.
 
-NB: any existing name column information will be overwritten
+NB: any existing name column information will be overwritten and other columns retained.
 
 =head1 OPTIONS
 
