@@ -22,17 +22,19 @@ my $species = 'human';
 my $build = 'GRCh38';
 my $out = 'annotated.bed';
 my $unique = 1;
+my $keep = 1;
 my $VERBOSE = 1;
 my $DEBUG = 0;
 my $help;
 my $man;
-our $VERSION = '0.6';
+our $VERSION = '0.7';
 
 GetOptions (
    'in=s'      => \$file,
    'species=s' => \$species,
    'genome-build=s' => \$build,
    'unique-names!' => \$unique,
+   'keep-extra-cols!' => \$keep,
    'out=s'     => \$out,
    'verbose!'  => \$VERBOSE,
    'debug!'    => \$DEBUG,
@@ -107,7 +109,7 @@ while(<$BED>) {
    }
 
    # Overwrite existing name column (if there is one), but keep other columns
-   if (scalar @rest > 1) {
+   if ($keep && scalar @rest > 1) {
       my $null = shift @rest;
       printf $OUT "\t%s", join("\t",@rest);
    }
@@ -119,7 +121,7 @@ close($OUT);
 
 =head1 SYNOPSIS
 
-annotate_bed.pl --in <file> [--species <speices>] [--genome-build <build>] [--unique-names|--no-unique-names] [--out <file>] [--verbose|--no-verbose] [--version] [--debug|--no-debug] [--man] [--help]
+annotate_bed.pl --in <file> [--species <speices>] [--genome-build <build>] [--unique-names|--no-unique-names] [--keep-extra-cols|--no-keep-extra-cols] [--out <file>] [--verbose|--no-verbose] [--version] [--debug|--no-debug] [--man] [--help]
 
 =head1 DESCRIPTION
 
@@ -146,6 +148,10 @@ Genome build - only relevant for human [ default: GRCh38]
 =item B<--unique-names>
 
 Specify whether to make names unqiue or not [default: unique]
+
+=item B<--keep-extra-cols>
+
+Specify whether to keep cols 5+ [default: keep]
 
 =item B<--out>
 
