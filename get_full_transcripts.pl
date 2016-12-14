@@ -66,6 +66,8 @@ foreach my $t (@$trans) {
    TimeRemaining($start_time, $n / $tot) if $VERBOSE;
    
    my $bseq = $t->seq();
+   ## TODO - test that each variable is defined here. Some (non-coding)
+   ##        transcripts don't have stable IDs
    printf $OUT ">%s %s:%s:%s:%s:%s:%s\n%s\n", $t->stable_id, $t->external_name(), $t->biotype, $t->seqname, $t->start, $t->end, $t->strand,$bseq->seq;
    ++$n;
 }
