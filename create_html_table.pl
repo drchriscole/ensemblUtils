@@ -25,8 +25,9 @@ my $title = 'Ensembl Data';
 my $out = 'out.html';
 my $idCol = 0;
 my $check = 0;
+my $linksoff = 0;
 my $ensSection;
-my $ensURL;
+my $ensURL = "";
 my $desc = 0;
 my $species = 'human';
 my $pcols = '';
@@ -42,6 +43,7 @@ GetOptions (
    'out=s'     => \$out,
    'id-column=i' => \$idCol,
    'title=s'   => \$title,
+   'disable-links!' => \$linksoff,
    'check-ensembl!' => \$check,
    'species=s' => \$species,
    'section=s' => \$ensSection,
@@ -59,32 +61,35 @@ pod2usage(-verbose => 1) if ($help);
 pod2usage(-msg => 'Please supply a valid filename.') if (!$file or !-e $file);
 
 my $gene_adaptor;
-if ($check) {
-   # load ensembl object
-   my $ens = ensembl->new(species => $species, VERBOSE => $VERBOSE);
-   print "Species: ", $ens->species, "\n" if $VERBOSE;
 
-   my $registry = $ens->connect();
-   $gene_adaptor = $registry->get_adaptor($species, 'Core', 'Gene');
-   die "ERROR - failed to get gene adaptor for '$species'. Check spelling and that it's a valid Ensembl species. Or check that you're using the correct API.\n" unless (defined($gene_adaptor));
-   warn "Warning - API version check has failed. You probably need to update your local install.\n" unless ($registry->version_check($registry->get_DBAdaptor($species, 'core')));
+if (!$linksoff) {
+	if ($check) {
+	   # load ensembl object
+	   my $ens = ensembl->new(species => $species, VERBOSE => $VERBOSE);
+	   print "Species: ", $ens->species, "\n" if $VERBOSE;
+	
+	   my $registry = $ens->connect();
+	   $gene_adaptor = $registry->get_adaptor($species, 'Core', 'Gene');
+	   die "ERROR - failed to get gene adaptor for '$species'. Check spelling and that it's a valid Ensembl species. Or check that you're using the correct API.\n" unless (defined($gene_adaptor));
+	   warn "Warning - API version check has failed. You probably need to update your local install.\n" unless ($registry->version_check($registry->get_DBAdaptor($species, 'core')));
+	}
+	
+	if (defined($ensSection)) {
+	   my %known;
+	   $known{$_}++ foreach (qw/plants bacteria metazoa protists fungi/);
+	   die "ERROR - ensembl genomes section '$ensSection' not known.\n" unless ($known{$ensSection});
+	}
+	
+	# generate a URL for links to ensembl
+	$ensURL = constructURL($species, $ensSection, $linksoff);
 }
-
-if (defined($ensSection)) {
-   my %known;
-   $known{$_}++ foreach (qw/plants bacteria metazoa protists fungi/);
-   die "ERROR - ensembl genomes section '$ensSection' not known.\n" unless ($known{$ensSection});
-}
-
-# generate a URL for links to ensembl
-$ensURL = constructURL($species, $ensSection);
 
 print "Parsing input file...\n" if $VERBOSE;
 my ($headers, $data);
-if ($check) {
+if ($check && !$linksoff) {
 	($headers, $data) = parseTsv($file, $gene_adaptor)
 } else {
-	($headers, $data) = parseTsv($file);
+	($headers, $data) = parseTsv($file, $gene_adaptor, $linksoff);
 }
 printf "Found %d columns and %d data rows\n", scalar @$headers, scalar @$data if $VERBOSE;
 
@@ -100,7 +105,7 @@ print $html "<?xml version='1.0' encoding='utf-8' ?>
 <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>
 <html xmlns='http://www.w3.org/1999/xhtml'>
 <head>
-  <title>Ensembl data</title>
+  <title>$title</title>
 
   <script type = 'text/javascript' src='http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js'> </script>
   <script type = 'text/javascript' src='http://cdn.datatables.net/1.10.5/js/jquery.dataTables.min.js'> </script>
@@ -217,7 +222,8 @@ sub constructURL {
 ## parse data
 sub parseTsv {
 	my $file = shift;
-	my $ens_adaptor= shift;
+	my $ens_adaptor = shift;
+	my $nolinks = shift;
 	
 	## read source data file and append HTML table data with it
 	my @colHeaders;
@@ -248,7 +254,11 @@ sub parseTsv {
 			}
 			
 			# if the geneID is valid turn it into an HTML <a> tag
-			$F[$idCol] = "<a href=\\'$ensURL$id\\'>$id</a>" if ($validID);
+			if ($nolinks) {
+				$F[$idCol] = $id
+			} else {
+				$F[$idCol] = "<a href=\\'$ensURL$id\\'>$id</a>" if ($validID);
+			}
 			
 			# store data
 			push @{$data[$i]},  @F;
@@ -286,6 +296,10 @@ Input file. Tab-delimitted with Ensembl identifiers in first column
 =item B<--id-column>
 
 Specify the gene ID column (0-indexed). [default: 0]
+
+=item B<--disable-links|--no-disable-links>
+
+Flag to disable ensembl links. Useful for using this script with tabluated data that you want to make into a nice html page but that doesn't specifically relate to gene IDs. [default: off]
 
 =item B<--check-ensembl|--no-check-ensembl>
 
